@@ -17,6 +17,8 @@ var SEP_COEFF = 1.75;
 var RAND_COEFF = 0.05;
 var MAX_VEL = 2.0;
 
+var NUM_BOIDS = 100;
+
 /** Function to return distance between 2 positions
     @return distance between 2 positions
 */
@@ -216,12 +218,34 @@ function initBuffers() {
 }
 
 function generateBoids( num ) {
+    // Create a bin array of CLOSE_THRESH x CLOSE_THRESH sized bins:
+    var bins = []
+    var numbins = 4.0 / CLOSE_THRESH;
+    for( var i = 0; i < numbins; ++i ) {
+        bin = {};
+        bin.position = [0.0, 0.0];
+        bin.velocity = [0.0, 0.0];
+        bin.boids = [];
+        bins.push(bin);
+    }
+
     // Generate num boids, each with a random position and velocity
     for( var i = 0; i < num; ++i ) {
         var boid = {};
         boid.position = [ (Math.random() - 0.5) * 2.0, (Math.random() - 0.5) * 2.0 ];
         boid.velocity = [ (Math.random() - 0.5) * 2.0, (Math.random() - 0.5) * 2.0 ];
         boids.push( boid );
+
+        // Add it to the appropriate bin:
+        var binx = (boid.position[0] + 1.0 ) / 2.0 * (numbins / 2); 
+        var biny = (boid.position[1] + 1.0 ) / 2.0 * (numbins / 2);
+        var bini = Math.floor(biny) + Math.floor( binx );
+        console.log(bini);
+        bins[bini].boids.push( boid );
+        bins[bini].position[0] += boid.position[0];
+        bins[bini].position[1] += boid.position[1];
+        bins[bini].velocity[0] += boid.velocity[0];
+        bins[bini].velocity[1] += boid.velocity[1];
     }
 }
 
@@ -247,7 +271,7 @@ function init() {
     initShaders();
 
     // Generate a number of boids!:
-    generateBoids( 100 );
+    generateBoids( NUM_BOIDS );
     
     // Reshape the canvas, and setup the viewport and projection
     reshape();
