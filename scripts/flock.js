@@ -7,17 +7,20 @@ var indices;
 var zoomval = 1.0;
 var requestId;
 var boids = [];
+var bins = []
 
 var CLOSE_THRESH = 0.1;
-var SEP_THRESH = 0.075;
-var SEC_SEP_THRESH = 0.065;
-var COHERE_COEFF = 0.65;
-var ALIGN_COEFF = 0.10;
-var SEP_COEFF = 1.75;
+var SEP_THRESH = 0.08;
+var SEC_SEP_THRESH = 0.07;
+var COHERE_COEFF = 0.65;//0.65;
+var ALIGN_COEFF = 0.30;//0.10;
+var SEP_COEFF = 1.75;//1.75;
 var RAND_COEFF = 0.05;
-var MAX_VEL = 2.0;
+var MAX_VEL = 1.5;
 
-var NUM_BOIDS = 100;
+var NUM_BOIDS = 500;
+var NUM_WBINS = 2.0 / CLOSE_THRESH;
+var NUM_BINS = NUM_WBINS * NUM_WBINS;
 
 /** Function to return distance between 2 positions
     @return distance between 2 positions
@@ -79,121 +82,152 @@ function update( time ) {
     // Setup another request
     requestId = requestAnimFrame( update, document.getElementById('c') );
     
-    for( var i = 0; i < boids.length; ++i ) {
-        // Coherence, separation, and alignment vectors
-        coherence = [ 0.0, 0.0 ];
-        separate = [ 0.0, 0.0 ];
-        align = [ 0.0, 0.0 ];
-        
-        // count the number of points within close range and sep range
-        var count = 0, sepCount = 0;
-        
-        // Loop through all other boids
-        for( var j = 0; j < boids.length; ++j ) {
-            if( i == j ) {
-                // Don't do anything for i == j
-                continue;
-            }
+    // Loop through each boid in each bin to update:
+    for( var i = 0; i < bins.length; ++i ) {
+        for( var j = 0; j < bins[i].boids.length; ++j ) {
+            // Coherence, separation, and alignment vectors
+            coherence = [ 0.0, 0.0 ];
+            separate = [ 0.0, 0.0 ];
+            align = [ 0.0, 0.0 ];
             
-            // Calculate the min dist from this boid to the one we are checking
-            dist = distance( boids[i].position, boids[j].position );
+            // count the number of points in close range and sep range
+            var count = 0, sepCount = 0;
+            var biny = Math.floor( i / NUM_WBINS );
+            var binx = i % NUM_WBINS;
+            
+            // Check each adjacent bin ( including diagonals )
+            for( var by = -1; by <= 1; ++by ) {
+                for( var bx = -1; bx <= 1; ++bx ) {
+                    var bini = (( biny + by + NUM_BINS ) % NUM_WBINS) * NUM_WBINS
+                              + ( binx + bx + NUM_WBINS ) % NUM_WBINS;
+                    // Loop through each boid in each adjacent bin
+                    for( var bb = 0; bb < bins[bini].boids.length; ++bb ) {
+                        if( bini == i && bb == j ) {
+                            continue;
+                        }
+                        
+                        // Calculate the min dist from this boid to the one we are checking
+                        dist = distance( bins[i].boids[j].position, bins[bini].boids[bb].prevpos );
 
-            // If this min dist is less than the "close" threshold
-            if( dist[0] < CLOSE_THRESH * CLOSE_THRESH ) {
-                // Increment count and update coherence/alignment vectors
-                count += 1;
-                coherence[0] += dist[1];
-                coherence[1] += dist[2];
-                align[0] += boids[j].velocity[0];
-                align[1] += boids[j].velocity[1];
-                
-                // If min dist is less than "sep" threshold
-                if( dist[0] < SEP_THRESH * SEP_THRESH ) {
-                    // update separation vector and increment sepcount
-                    separate[0] += dist[1];
-                    separate[1] += dist[2];
-                    sepCount += 1;
+                        // If this min dist is less than the "close" threshold
+                        if( dist[0] < CLOSE_THRESH * CLOSE_THRESH ) {
+                            // Increment count and update coherence/alignment vectors
+                            count += 1;
+                            coherence[0] += dist[1];
+                            coherence[1] += dist[2];
+                            align[0] += bins[bini].boids[bb].prevvel[0];
+                            align[1] += bins[bini].boids[bb].prevvel[1];
+                            
+                            // If min dist is less than "sep" threshold
+                            if( dist[0] < SEP_THRESH * SEP_THRESH ) {
+                                // update separation vector and increment sepcount
+                                separate[0] += dist[1];
+                                separate[1] += dist[2];
+                                sepCount += 1;
 
-                    // If min dist is below the "very very close" threshold
-                    if( dist[0] < SEC_SEP_THRESH * SEC_SEP_THRESH ) {
-                        // Factor in this separation even more
-                        separate[0] += dist[1] * 12.0;
-                        separate[1] += dist[2] * 12.0;
-                        sepCount += 12;
+                                // If min dist is below the "very very close" threshold
+                                if( dist[0] < SEC_SEP_THRESH * SEC_SEP_THRESH ) {
+                                    // Factor in this separation even more
+                                    separate[0] += dist[1] * 12.0;
+                                    separate[1] += dist[2] * 12.0;
+                                    sepCount += 12;
+                                }
+                            }
+                        }
                     }
                 }
             }
-        }
-        
-        // If there were a non-zero number of boids 
-        if( count > 0 ) { 
-            // Average coherence and alignment
-            coherence[0] /= count;
-            coherence[1] /= count;
-            align[0] /= count;
-            align[1] /= count;
             
-            // Calculate desired position from coherence
-            var desired_pos = [ coherence[0] - boids[i].position[0], 
-                                coherence[1] - boids[i].position[1] ];
-            
-            // Add to this boid's velocity desired position and alignment
-            // so it will trend towards flying to the center of the close 
-            // boids and facing the same way as close boids
-            boids[i].velocity[0] += desired_pos[0] * COHERE_COEFF;
-            boids[i].velocity[1] += desired_pos[1] * COHERE_COEFF;
-            boids[i].velocity[0] += align[0] * ALIGN_COEFF;
-            boids[i].velocity[1] += align[1] * ALIGN_COEFF;
-            
-            // With a very low probability, introduce a little randomness
-            // into the velocity
-            if( Math.random() > 0.999 ) {
-                // Randomly perturb the velocity a bit:
-                boids[i].velocity[0] += Math.random() - 1.0 * 2.0 * RAND_COEFF;
-                boids[i].velocity[1] += Math.random() - 1.0 * 2.0 * RAND_COEFF;
+            // If there were a non-zero number of boids 
+            if( count > 0 ) { 
+                // Average coherence and alignment
+                coherence[0] /= count;
+                coherence[1] /= count;
+                align[0] /= count;
+                align[1] /= count;
+                
+                // Calculate desired position from coherence
+                var desired_pos = [ coherence[0] - bins[i].boids[j].position[0], 
+                                    coherence[1] - bins[i].boids[j].position[1] ];
+                
+                // Add to this boid's velocity desired position and alignment
+                // so it will trend towards flying to the center of the close 
+                // boids and facing the same way as close boids
+                bins[i].boids[j].velocity[0] += desired_pos[0] * COHERE_COEFF;
+                bins[i].boids[j].velocity[1] += desired_pos[1] * COHERE_COEFF;
+                bins[i].boids[j].velocity[0] += align[0] * ALIGN_COEFF;
+                bins[i].boids[j].velocity[1] += align[1] * ALIGN_COEFF;
+                
+                // With a very low probability, introduce a little randomness
+                // into the velocity
+                if( Math.random() > 0.999 ) {
+                    // Randomly perturb the velocity a bit:
+                    bins[i].boids[j].velocity[0] += Math.random() - 1.0 * 2.0 * RAND_COEFF;
+                    bins[i].boids[j].velocity[1] += Math.random() - 1.0 * 2.0 * RAND_COEFF;
+                }
+
+                // If there were a non-zero number of boids close enough for separation
+                if( sepCount > 0 ) {
+                    // average separation vector
+                    separate[0] /= sepCount;
+                    separate[1] /= sepCount;
+
+                    // Calculate position to avoid
+                    var avoid_pos = [ separate[0] - bins[i].boids[j].position[0],
+                                      separate[1] - bins[i].boids[j].position[1] ];
+
+                    // change the boid's velocity to avoid the center of very close
+                    // boids
+                    bins[i].boids[j].velocity[0] -= avoid_pos[0] * SEP_COEFF;
+                    bins[i].boids[j].velocity[1] -= avoid_pos[1] * SEP_COEFF;
+                }
+                
+                // Calculate velocity magnitude, and normalize it to MAX_VEL, so that
+                // the boids do not accelerate uncontrollably
+                vel_mag = Math.sqrt( Math.pow( bins[i].boids[j].velocity[0], 2) + Math.pow( bins[i].boids[j].velocity[1], 2) );
+                if( vel_mag > MAX_VEL ) {
+                    bins[i].boids[j].velocity[0] = bins[i].boids[j].velocity[0] / vel_mag * MAX_VEL;
+                    bins[i].boids[j].velocity[1] = bins[i].boids[j].velocity[1] / vel_mag * MAX_VEL;
+                }
             }
+            
+            // Move the boid's posiiton by it's velocity
+            bins[i].boids[j].position[0] += bins[i].boids[j].velocity[0] * 0.01;
+            bins[i].boids[j].position[1] += bins[i].boids[j].velocity[1] * 0.01;
 
-            // If there were a non-zero number of boids close enough for separation
-            if( sepCount > 0 ) {
-                // average separation vector
-                separate[0] /= sepCount;
-                separate[1] /= sepCount;
-
-                // Calculate position to avoid
-                var avoid_pos = [ separate[0] - boids[i].position[0],
-                                  separate[1] - boids[i].position[1] ];
-
-                // change the boid's velocity to avoid the center of very close
-                // boids
-                boids[i].velocity[0] -= avoid_pos[0] * SEP_COEFF;
-                boids[i].velocity[1] -= avoid_pos[1] * SEP_COEFF;
+            // Do wrap around X
+            if( bins[i].boids[j].position[0] >  1.0 ) {
+                bins[i].boids[j].position[0] -= 2.0;
+            } else if( bins[i].boids[j].position[0] < -1.0 ) {
+                bins[i].boids[j].position[0] += 2.0;
             }
             
-            // Calculate velocity magnitude, and normalize it to MAX_VEL, so that
-            // the boids do not accelerate uncontrollably
-            vel_mag = Math.sqrt( Math.pow( boids[i].velocity[0], 2) + Math.pow( boids[i].velocity[1], 2) );
-            if( vel_mag > MAX_VEL ) {
-                boids[i].velocity[0] = boids[i].velocity[0] / vel_mag * MAX_VEL;
-                boids[i].velocity[1] = boids[i].velocity[1] / vel_mag * MAX_VEL;
+            // Do wrap around Y
+            if( bins[i].boids[j].position[1] >  1.0 ) {
+                bins[i].boids[j].position[1] -= 2.0;
+            } else if( bins[i].boids[j].position[1] < -1.0 ) {
+                bins[i].boids[j].position[1] += 2.0;
             }
         }
-        
-        // Move the boid's posiiton by it's velocity
-        boids[i].position[0] += boids[i].velocity[0] * 0.01;
-        boids[i].position[1] += boids[i].velocity[1] * 0.01;
-
-        // Do wrap around X
-        if( boids[i].position[0] >  1.0 ) {
-            boids[i].position[0] -= 2.0;
-        } else if( boids[i].position[0] < -1.0 ) {
-            boids[i].position[0] += 2.0;
-        }
-        
-        // Do wrap around Y
-        if( boids[i].position[1] >  1.0 ) {
-            boids[i].position[1] -= 2.0;
-        } else if( boids[i].position[1] < -1.0 ) {
-            boids[i].position[1] += 2.0;
+    }
+    // Loop through each boid in each bin to update:
+    for( var i = 0; i < bins.length; ++i ) {
+        for( var j = 0; j < bins[i].boids.length; ++j ) {
+            // Update previous position:
+            bins[i].boids[j].prevpos[0] = bins[i].boids[j].position[0];
+            bins[i].boids[j].prevpos[1] = bins[i].boids[j].position[1];
+            
+            // Update the bins if necessary
+            var binx = Math.floor( (bins[i].boids[j].position[0] + 1.0) / 2.0 * NUM_WBINS);
+            var biny = Math.floor( (bins[i].boids[j].position[1] + 1.0) / 2.0 * NUM_WBINS);
+            var newbini = (biny * NUM_WBINS + binx) % NUM_BINS;
+            
+            // Switch bins!
+            if( newbini != i ) {
+                var boid = bins[i].boids.splice(j, 1);
+                j -= 1;
+                bins[newbini].boids.push(boid[0]);
+            }
         }
     }
     
@@ -219,9 +253,7 @@ function initBuffers() {
 
 function generateBoids( num ) {
     // Create a bin array of CLOSE_THRESH x CLOSE_THRESH sized bins:
-    var bins = []
-    var numbins = 4.0 / CLOSE_THRESH;
-    for( var i = 0; i < numbins; ++i ) {
+    for( var i = 0; i < NUM_BINS; ++i ) {
         bin = {};
         bin.position = [0.0, 0.0];
         bin.velocity = [0.0, 0.0];
@@ -234,13 +266,16 @@ function generateBoids( num ) {
         var boid = {};
         boid.position = [ (Math.random() - 0.5) * 2.0, (Math.random() - 0.5) * 2.0 ];
         boid.velocity = [ (Math.random() - 0.5) * 2.0, (Math.random() - 0.5) * 2.0 ];
+        boid.prevpos = [ boid.position[0], boid.position[1] ];
+        boid.prevvel = [ boid.velocity[0], boid.velocity[1] ];
+        boid.id = i;
         boids.push( boid );
 
         // Add it to the appropriate bin:
-        var binx = (boid.position[0] + 1.0 ) / 2.0 * (numbins / 2); 
-        var biny = (boid.position[1] + 1.0 ) / 2.0 * (numbins / 2);
-        var bini = Math.floor(biny) + Math.floor( binx );
-        console.log(bini);
+        var binx = (boid.position[0] + 1.0 ) / 2.0 * NUM_WBINS; 
+        var biny = (boid.position[1] + 1.0 ) / 2.0 * NUM_WBINS;
+        var bini = Math.floor(biny) + Math.floor( binx ) % NUM_WBINS;
+        
         bins[bini].boids.push( boid );
         bins[bini].position[0] += boid.position[0];
         bins[bini].position[1] += boid.position[1];
