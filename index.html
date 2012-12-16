@@ -22,9 +22,17 @@
     </script>
     <script id="fshader" type="x-shader/x-fragment">
         precision mediump float;
+        
+        uniform float uNeighbor;
 
         void main() {
-            gl_FragColor = vec4( 1.0, 0.0, 0.0, 1.0 );
+            vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
+            if( uNeighbor == 2.0 ) {
+                color = vec4( 0.0, 1.0, 0.0, 1.0 );
+            } else {
+                color = vec4( 1.0, 0.0, uNeighbor, 1.0 );
+            }
+            gl_FragColor = color;
         }        
     </script>
     <link rel="stylesheet" type="text/css" href="styles.css" />

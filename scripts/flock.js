@@ -8,69 +8,47 @@ var zoomval = 1.0;
 var requestId;
 var boids = [];
 
+var HEIGHT = 2.0;
+var WIDTH = 2.0;
+
 var CLOSE_THRESH = 0.2;
 var SEP_THRESH = 0.1;
-var COHERE_COEFF = 0;
-var ALIGN_COEFF = 1;
-var SEP_COEFF = 2;
+var COHERE_COEFF = 0.5;
+var ALIGN_COEFF = 0.5;
+var SEP_COEFF = 0.75;
+
 var MAX_VEL = 1.0;
+var MAX_FORCE = 0.1;
 
 var NUM_BOIDS = 100;
 
-/** Function to return distance between 2 positions
-    @return distance between 2 positions
+/** Function to return the wrap around point of pos2 that is closest
+    to the given pos1.
+    @param pos1 Anchor point used to calculate closest position
+    @param pos2 Point to wrap around and find the closest position of
+    @return Closest representation of pos2 to pos1 potentially wrapped 
+            around the screen.
 */
-function distance( pos1, pos2 ) {
-    // dist keeps track of the shortest distance in both the x and y direction
-    var dist = [ pos1.x, pos1.y ];
-
-    // cpos keeps track of what the modified position of pos2 is to obtain
-    // the min distance ( this is necessary for wrap around )
-    var cpos = [ pos2.x, pos2.y ];
-
-    // If the x coordinate is passed 0.0 ( on the right half )
-    if( pos2.x > 0 ) { 
-        // The dist is min of the distance to current position and dist to 
-        // position - 2.0
-        if( Math.abs( pos1.x - pos2.x ) < Math.abs( pos1.x - pos2.x + 2.0 ) ) {
-            dist[0] = Math.abs( pos1.x - pos2.x );
-        } else {
-            dist[0] = Math.abs( pos1.x - pos2.x + 2.0 );
-
-            // If we used pos2 - 2.0, update the closest position
-            cpos[0] -= 2.0;
-        }
-    } else {
-        // If position is on the left half, check normal position and pos2 + 2.0
-        if( Math.abs( pos1.x - pos2.x ) < Math.abs( pos1.x - pos2.x - 2.0 ) ) {
-            dist[0] = Math.abs( pos1.x - pos2.x );
-        } else {
-            dist[0] = Math.abs( pos1.x - pos2.x - 2.0 );
-
-            // If we used pos2 + 2.0, update closest position
-            cpos[0] += 2.0;
-        }
+function closestPoint( pos1, pos2 ) {
+    var dvec = new Vec2( pos2.x - pos1.x, pos2.y - pos1.y );
+    var cpos = new Vec2( pos2.x, pos2.y );
+    
+    // Wrap around the x direction if necessary
+    if( dvec.x > WIDTH / 2.0 ) {
+        cpos.x -= WIDTH;
+    } else if( dvec.x < -WIDTH / 2.0 ) {
+        cpos.x += WIDTH;
     }
-
-    // Do similar checks for the y position
-    if( pos2.y > 0 ) { 
-        if( Math.abs( pos1.y - pos2.y ) < Math.abs( pos1.y - pos2.y + 2.0 ) ) {
-            dist[1] = Math.abs( pos1.y - pos2.y );
-        } else {
-            dist[1] = Math.abs(pos1.y - pos2.y + 2.0 );
-            cpos[1] -= 2.0;
-        }
-    } else {
-        if( Math.abs( pos1.y - pos2.y ) < Math.abs( pos1.y - pos2.y - 2.0 ) ) {
-            dist[1] = Math.abs( pos1.y - pos2.y );
-        } else {
-            dist[1] = Math.abs( pos1.y - pos2.y - 2.0 );
-            cpos[1] += 2.0;
-        }
+    
+    // Wrap around the y direction if necessary
+    if( dvec.y > HEIGHT / 2.0 ) {
+        cpos.y -= HEIGHT;
+    } else if( dvec.y < -HEIGHT / 2.0 ) {
+        cpos.y += HEIGHT;
     }
-
-    // Return the sqaured distance and closest position
-    return [ Math.sqrt( Math.pow( dist[0], 2.0 ) + Math.pow( dist[1], 2.0 ) ), new Vec2( cpos[0], cpos[1] ) ];
+    
+    // Now cpos has the closest wrap around point of c2
+    return cpos;
 }
 
 function update( time ) {
@@ -87,79 +65,46 @@ function update( time ) {
         // count the number of points in close range and sep range
         var count = 0, sepCount = 0;
         
-        // Loop through each boid in each adjacent bin
+        // Loop through each boid and calculate coherence and separation
+        // positions and alignment direction
         for( var j = 0; j < boids.length; ++j ) {
-            if( j == i ) {
-                continue;
-            }
+            var cpos = closestPoint( boids[i].pos, boids[j].pos );
+            var dist = boids[i].pos.minus( cpos ).magnitude();
             
-            // Calculate the min dist from this boid to the one we are checking
-            var dist = distance( boids[i].pos, boids[j].ppos );
-
-            // If this min dist is less than the "close" threshold
-            if( dist[0] < CLOSE_THRESH ) {
-                // Increment count and update coherence/alignment vectors
-                count += 1;
-                coherence = coherence.plus( dist[1] );
-                align = align.plus( boids[j].pvel );
+            // If within the neighborhood threshold
+            if( dist < CLOSE_THRESH && dist > 0) {
+                coherence.add( cpos );
+                align.add( boids[j].vel );
+                ++count;
                 
-                // If min dist is less than "sep" threshold
-                if( dist[0] < SEP_THRESH ) {
-                    // update separation vector and increment sepcount
-                    var sepVec = boids[i].pos.minus( dist[1] );
-                    sepVec.normalize();
-                    separate = separate.plus( sepVec );
-                    sepCount += 1;
+                if( dist < SEP_THRESH ) {
+                    var sepvec = boids[i].pos.minus( cpos );
+                    sepvec.normalize();
+                    sepvec = sepvec.multiply( 1.0 / (50.0*dist) );
+                    separate = separate.plus( sepvec );
+                    ++sepCount;
                 }
             }
         }
         
-        // If there were a non-zero number of boids 
-        if( count > 0 ) { 
-            // Average coherence and alignment
-            coherence = coherence.scalarProd( 1/count );
-            align = align.scalarProd( 1/count );
+        if( count > 0 ) {
+            var accel = new Vec2(0.0, 0.0);
+            coherence = coherence.multiply( 1.0 / count );
+            coherence = boids[i].steerTo( coherence );
+            coherence.limit( MAX_FORCE );
+            align = align.multiply( 1.0 / count );
+            align.limit( MAX_FORCE );
+            accel.add( coherence.multiply( COHERE_COEFF ) );
+            accel.add( align.multiply( ALIGN_COEFF ) );
             
-            // Steer to coherence point
-            var desired = coherence.minus( boids[i].pos );
-            if( desired.magnitude() > 0.0 ) {
-                desired.normalize();
-                desired = desired.scalarProd( MAX_VEL );
-                coherence = desired.minus( boids[i].vel );
-            } else {
-                coherence = new Vec2( 0.0, 0.0 );
-            }
-            
-            // Calculate desired position from coherence
-            var desired_pos = coherence.minus( boids[i].pos );
-            
-            // Add to this boid's velocity desired position and alignment
-            // so it will trend towards flying to the center of the close 
-            // boids and facing the same way as close boids
-            boids[i].vel = boids[i].vel.plus( desired_pos.scalarProd( COHERE_COEFF ) );
-            boids[i].vel = boids[i].vel.plus( align.scalarProd( ALIGN_COEFF ) );
-
-            // If there were a non-zero number of boids close enough for separation
             if( sepCount > 0 ) {
-                // average separation vector
-                separate = separate.scalarProd( 1/sepCount );
-
-                // Calculate position to avoid
-                var avoid_pos = separate.minus( boids[i].ppos );
-
-                // change the boid's velocity to avoid the center of very close
-                // boids
-                boids[i].vel = boids[i].vel.minus( avoid_pos.scalarProd( SEP_COEFF ) );
+                accel.add( separate.multiply( SEP_COEFF / sepCount ) );
             }
-            
-            // Calculate velocity magnitude, and normalize it to MAX_VEL, so that
-            // the boids do not accelerate uncontrollably
-            if( boids[i].vel.magnitude() > MAX_VEL ) {
-                boids[i].vel = boids[i].vel.scalarProd( MAX_VEL / boids[i].vel.magnitude() );
-            }
+            boids[i].vel.add( accel );
+            boids[i].vel.limit( MAX_VEL );
         }
         
-        // Move the boid's posiiton by it's velocity
+        // Move the boid's posiiton by its velocity
         boids[i].move();
 
         // Do wrap around X
@@ -179,12 +124,6 @@ function update( time ) {
     
     // Finally, display
     display();
-    
-    // Loop through each boid and set previous position and velocity
-    for( var i = 0; i < boids.length; ++i ) {
-        boids[i].ppos = new Vec2( boids[i].pos.x, boids[i].pos.y );
-        boids[i].pvel = new Vec2( boids[i].vel.x, boids[i].vel.y );
-    }
 }
 
 function initBuffers() {
@@ -299,6 +238,7 @@ function initShaders() {
     gl_program_loc.uMVMatrix = gl.getUniformLocation(gl_program, "uMVMatrix");
     gl_program_loc.uPMatrix  = gl.getUniformLocation(gl_program, "uPMatrix");
     gl_program_loc.aPosition = gl.getAttribLocation(gl_program, "aPosition");
+    gl_program_loc.uNeighbor = gl.getUniformLocation(gl_program, "uNeighbor");
 }
 
 /**
@@ -350,9 +290,17 @@ function display() {
     for( var i = 0; i < boids.length; ++i ) {
         vel_mag = boids[i].vel.magnitude();
         // Set the model-view matrix to the identity
+        var cpos = closestPoint( boids[0].pos, boids[i].pos );
+        var dist = boids[0].pos.minus( cpos ).magnitude();
+        if( dist < CLOSE_THRESH && i > 0 ) {
+            gl.uniform1f( gl_program_loc.uNeighbor, 1.0 );
+        } else if ( i == 0 ) {
+            gl.uniform1f( gl_program_loc.uNeighbor, 2.0 );
+        } else {
+            gl.uniform1f( gl_program_loc.uNeighbor, 0.0 );
+        }
         mat4.identity(mvmat);
         mat4.translate( mvmat, [boids[i].pos.x, boids[i].pos.y, 0.0] ,mvmat );
-        console.log( boids[i].vel.x / vel_mag );
         mat4.rotateZ( mvmat, Math.acos(boids[i].vel.x / vel_mag) * (boids[i].vel.y > 0.0 ? 1.0 : -1.0),mvmat );
         mat4.scale( mvmat, [0.02, 0.02, 1.0], mvmat )
         gl.uniformMatrix4fv(gl_program_loc.uMVMatrix, false, mvmat);

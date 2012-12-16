@@ -23,9 +23,21 @@ function Vec2( x, y ) {
  * Adds this vector to the other vector. 
  * [ this + other ]
  * @param other Another Vec2 to add to this one
+ * @return New Vec2 that is the sum of this vector and other
  */
 Vec2.prototype.plus = function( other ) {
     return new Vec2( this.x + other.x, this.y + other.y );
+}
+
+/**
+ * Adds another vector to this one, storing the result in this
+ * vector.
+ * [ this = this + other ]
+ * @param other Another Vec2 to add to this one
+ */
+Vec2.prototype.add = function( other ) {
+    this.x += other.x;
+    this.y += other.y;
 }
 
 /**
@@ -57,7 +69,7 @@ Vec2.prototype.normalize = function() {
  * Returns this vector multiplied by a passed in scalar.
  * @param s Scalar to multiply this vector by
  */
-Vec2.prototype.scalarProd = function( s ) {
+Vec2.prototype.multiply = function( s ) {
     return new Vec2( this.x * s, this.y * s );
 }
 
@@ -67,4 +79,16 @@ Vec2.prototype.scalarProd = function( s ) {
  */
 Vec2.prototype.dot = function( other ) {
     return this.x * other.x + this.y * other.y;
+}
+
+/**
+ * Function to limit a vector's magnitude to a given value.
+ * @param lim Maximum magnitude of the vector
+ */
+Vec2.prototype.limit = function( lim ) {
+    if( this.magnitude() > lim ) {
+        this.normalize();
+        this.x *= lim ;
+        this.y *= lim ;
+    }
 }
