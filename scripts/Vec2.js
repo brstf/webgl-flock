@@ -63,6 +63,7 @@ Vec2.prototype.normalize = function() {
     var m = this.magnitude();
     this.x = this.x / m;
     this.y = this.y / m;
+    return this;
 }
  
 /**

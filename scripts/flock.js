@@ -4,21 +4,14 @@ var gl_program_loc = {};
 var mvmat, projmat;
 var vbo;
 var indices;
-var zoomval = 1.0;
 var requestId;
 var boids = [];
 
-var HEIGHT = 2.0;
-var WIDTH = 2.0;
+var HEIGHT = 1.0;
+var WIDTH = 1.0;
 
-var CLOSE_THRESH = 0.2;
-var SEP_THRESH = 0.1;
-var COHERE_COEFF = 0.5;
-var ALIGN_COEFF = 0.5;
-var SEP_COEFF = 0.75;
-
-var MAX_VEL = 1.0;
-var MAX_FORCE = 0.1;
+var CLOSE_THRESH = 0.1;
+var SEP_THRESH = 0.05;
 
 var NUM_BOIDS = 100;
 
@@ -78,48 +71,25 @@ function update( time ) {
                 ++count;
                 
                 if( dist < SEP_THRESH ) {
-                    var sepvec = boids[i].pos.minus( cpos );
-                    sepvec.normalize();
-                    sepvec = sepvec.multiply( 1.0 / (50.0*dist) );
-                    separate = separate.plus( sepvec );
+                    var sepvec = boids[i].pos.minus( cpos ).normalize();
+                    separate = separate.plus( sepvec.multiply( 1.0 / dist ) );
                     ++sepCount;
                 }
             }
         }
         
         if( count > 0 ) {
-            var accel = new Vec2(0.0, 0.0);
             coherence = coherence.multiply( 1.0 / count );
-            coherence = boids[i].steerTo( coherence );
-            coherence.limit( MAX_FORCE );
             align = align.multiply( 1.0 / count );
-            align.limit( MAX_FORCE );
-            accel.add( coherence.multiply( COHERE_COEFF ) );
-            accel.add( align.multiply( ALIGN_COEFF ) );
             
             if( sepCount > 0 ) {
-                accel.add( separate.multiply( SEP_COEFF / sepCount ) );
+                separate = separate.multiply( 1.0 / sepCount );
             }
-            boids[i].vel.add( accel );
-            boids[i].vel.limit( MAX_VEL );
         }
         
         // Move the boid's posiiton by its velocity
-        boids[i].move();
-
-        // Do wrap around X
-        if( boids[i].pos.x >  1.0 ) {
-            boids[i].pos.x -= 2.0;
-        } else if( boids[i].pos.x < -1.0 ) {
-            boids[i].pos.x += 2.0;
-        }
-        
-        // Do wrap around Y
-        if( boids[i].pos.y >  1.0 ) {
-            boids[i].pos.y -= 2.0;
-        } else if( boids[i].pos.y < -1.0 ) {
-            boids[i].pos.y += 2.0;
-        }
+        boids[i].flock( coherence, align, separate );
+        boids[i].move( WIDTH, HEIGHT );
     }
     
     // Finally, display
@@ -257,9 +227,8 @@ var reshape = function() {
     gl.viewport(0, 0, canvas.clientWidth, canvas.clientHeight);
     
     // Get the aspect ratio, and use this to setup the projection matrix
-    var aspect_ratio = canvas.width / canvas.height;
-    mat4.ortho((-1.0 * aspect_ratio / zoomval), (1.0 * aspect_ratio / zoomval), 
-        -1.0 / zoomval, 1.0 / zoomval, -10.0, 10.0, projmat);
+    WIDTH = canvas.width / canvas.height;
+    mat4.ortho( 0.0, WIDTH, 0.0, HEIGHT, -10.0, 10.0, projmat);
 }
 
 /**
@@ -302,7 +271,7 @@ function display() {
         mat4.identity(mvmat);
         mat4.translate( mvmat, [boids[i].pos.x, boids[i].pos.y, 0.0] ,mvmat );
         mat4.rotateZ( mvmat, Math.acos(boids[i].vel.x / vel_mag) * (boids[i].vel.y > 0.0 ? 1.0 : -1.0),mvmat );
-        mat4.scale( mvmat, [0.02, 0.02, 1.0], mvmat )
+        mat4.scale( mvmat, [0.01, 0.01, 1.0], mvmat )
         gl.uniformMatrix4fv(gl_program_loc.uMVMatrix, false, mvmat);
         gl.drawElements(gl.TRIANGLES, 3, gl.UNSIGNED_SHORT, 0);
     }
@@ -324,21 +293,7 @@ function main() {
     // Setup the window's resize function
     window.onresize = reshape;
     
-    // On key presses, zoom in or out
-    window.onkeydown = keyFunction;
-    
     // Initialize all variables and display the scene
     init();
     display();
 }  
-
-keyFunction = function(event) {
-    // If '+' is pressed, zoom in, '-' zoom out
-    if( event.keyCode == 107 || event.keyCode == 187 ) {
-        zoomval += 0.1;
-        reshape();
-    } else if( event.keyCode == 109 || event.keyCode == 189 ) {
-        zoomval -= 0.1;
-        reshape();
-    }
-} 
