@@ -47,22 +47,6 @@ function Boid( x, y, vx, vy ) {
  */
 Boid.prototype.move = function( width, height ) {
     this.pos = this.pos.plus( this.vel.multiply( 0.01 ) );
-    
-    if( width !== undefined && height !== undefined ) {
-        // Do wrap around X
-        if( this.pos.x >  width ) {
-            this.pos.x -= width;
-        } else if( this.pos.x < 0 ) {
-            this.pos.x += width;
-        }
-        
-        // Do wrap around Y
-        if( this.pos.y > height ) {
-            this.pos.y -= height;
-        } else if( this.pos.y < 0 ) {
-            this.pos.y += height;
-        }
-    }
 }
 
 /**
