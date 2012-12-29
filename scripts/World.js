@@ -1,7 +1,7 @@
 /*
- * BoidController.js - Handles updating velocity, movement, wrap around
- *                     etc. of all Boids.  Only 1 BoidController is used
- *                     for a collection of Boids.
+ * World.js - Handles updating velocity, movement, wrap around
+ *            etc. of all Boids.  Only 1 World is used
+ *            for a collection of Boids.
  */
  
 var CLOSE_THRESH = 0.1;
@@ -15,7 +15,7 @@ var SEP_THRESH = 0.05;
  * @param height Height of display area
  * @param nBoids Number of initial boids
  */
-function BoidController( width, height, nBoids ) {
+function World( width, height, nBoids ) {
     // Set necessary default values
     if( width === undefined ) {
         width = 1.0;
@@ -39,7 +39,7 @@ function BoidController( width, height, nBoids ) {
  * track of.  Position and velocity of new boids are randomly generated.
  * @param nBoids Number of boids to generate
  */
-BoidController.prototype.generateBoids = function( nBoids ) {
+World.prototype.generateBoids = function( nBoids ) {
     if( nBoids === undefined ) {
         nBoids = 1;
     }
@@ -51,6 +51,25 @@ BoidController.prototype.generateBoids = function( nBoids ) {
     }
 }
 
+/**
+ * Adds a Boid with a random position and velocity to this boid controller.
+ */
+World.prototype.addBoid = function() {
+    this.generateBoids( 1 );
+}
+
+/** 
+ * Removes a boid from this World with the given index, or 
+ * if no index is given, remove the last boid from the list.
+ * @param bi Index of boid to remove, removes last boid if bi is undefined
+ */
+World.prototype.removeBoid = function( bi ) {
+    if( bi === undefined ) {
+        bi = this.boids.length - 1;
+    }
+    this.boids.splice( bi, 1 );
+}
+
 /** Function to return the wrap around point of pos2 that is closest
     to the given pos1.
     @param pos1 Anchor point used to calculate closest position
@@ -58,7 +77,7 @@ BoidController.prototype.generateBoids = function( nBoids ) {
     @return Closest representation of pos2 to pos1 potentially wrapped 
             around the screen.
 */
-BoidController.prototype.closestPoint = function( pos1, pos2 ) {
+World.prototype.closestPoint = function( pos1, pos2 ) {
     var dvec = new Vec2( pos2.x - pos1.x, pos2.y - pos1.y );
     var cpos = new Vec2( pos2.x, pos2.y );
     
@@ -83,7 +102,7 @@ BoidController.prototype.closestPoint = function( pos1, pos2 ) {
 /**
  * Updates the velocities of all Boids according to the flocking algorithm.
  */
-BoidController.prototype.update = function() {
+World.prototype.update = function() {
     // Loop through each boid
     for( var i = 0; i < this.boids.length; ++i ) {
         // Coherence, separation, and alignment vectors
@@ -131,7 +150,7 @@ BoidController.prototype.update = function() {
 /**
  * Moves all of the boids, performing wrap around if necessary.
  */
-BoidController.prototype.move = function() {
+World.prototype.move = function() {
     for( var i = 0; i < this.boids.length; ++i ) {
         this.boids[i].move();
         
@@ -149,4 +168,9 @@ BoidController.prototype.move = function() {
             this.boids[i].pos.y += this.height;
         }
     }
+}
+
+World.prototype.setBounds = function( width, height ) {
+    this.width = width;
+    this.height = height;
 }
