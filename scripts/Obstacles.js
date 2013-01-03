@@ -46,7 +46,8 @@ function CircleObstacle( x, y, r ) {
  * @param pos Vec2 position of the boid to calculate distance from
  */
 CircleObstacle.prototype.distance = function( pos ) {
-    return pos.minus( this.pos ).magnitude() - this.rad;
+    var dist = pos.minus( this.pos ).magnitude() - this.rad
+    return dist > 0 ? dist : 0;
 }
 
 /**

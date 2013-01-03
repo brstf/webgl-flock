@@ -29,6 +29,13 @@ function init() {
     // Reshape the canvas, and setup the viewport and projection
     reshape();
     
+    world.addObstacle();
+    world.addObstacle();
+    world.addObstacle();
+    world.addObstacle();
+    world.addObstacle();
+    world.addObstacle();
+    
     requestId = requestAnimFrame( update, document.getElementById('c') );
 }
 

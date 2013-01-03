@@ -13,6 +13,7 @@ function Views( gl ) {
     this.gl.disable(gl.BLEND);
     this.projmat = mat4.create();
     this.boidview = new BoidView( this.gl );
+    this.circobsview = new CircleObstacleView( this.gl );
     
     this.initShaders();
 }
@@ -120,6 +121,14 @@ Views.prototype.draw = function( world ) {
     gl.vertexAttribPointer( this.prog_loc.aPosition, 3, gl.FLOAT, false, 12, 0 );
     gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, this.boidview.getIndexBuffer() );
     for( var i = 0; i < world.boids.length; ++i ) {
-        this.boidview.draw( world.boids[i], 0.01, this.prog_loc.uMVMatrix, gl );
+        this.boidview.draw( world.boids[i], 0.01, this.prog_loc.uMVMatrix );
+    }
+    
+    // Bind the circle obstacle vbo to draw the circle obstacles
+    gl.bindBuffer( gl.ARRAY_BUFFER, this.circobsview.getVBO() );
+    gl.vertexAttribPointer( this.prog_loc.aPosition, 3, gl.FLOAT, false, 12, 0 );
+    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, this.circobsview.getIndexBuffer() );
+    for( var i = 0; i < world.obs.length; ++i ) {
+        this.circobsview.draw( world.obs[i], this.prog_loc.uMVMatrix );
     }
 }

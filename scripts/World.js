@@ -6,6 +6,7 @@
  
 var CLOSE_THRESH = 0.1;
 var SEP_THRESH = 0.05;
+var OBS_THRESH = 0.025;
 
 /**
  * Constructor that accepts parameters for width and height 
@@ -31,6 +32,7 @@ function World( width, height, nBoids ) {
     this.width = width;
     this.height = height;
     this.boids = [];
+    this.obs = [];
     this.generateBoids( nBoids );
 }
 
@@ -68,6 +70,22 @@ World.prototype.removeBoid = function( bi ) {
         bi = this.boids.length - 1;
     }
     this.boids.splice( bi, 1 );
+}
+
+World.prototype.addObstacle = function( x, y, r ) {
+    if( x === undefined ) {
+        x = Math.random() * this.width;
+    }
+    
+    if( y === undefined ) {
+        y = Math.random() * this.height;
+    }
+    
+    if( r === undefined ) {
+        r = Math.random() * 0.05;
+    }
+    
+    this.obs.push( new CircleObstacle( x, y, r ) );
 }
 
 /** Function to return the wrap around point of pos2 that is closest
@@ -130,6 +148,19 @@ World.prototype.update = function() {
                     separate = separate.plus( sepvec.multiply( 1.0 / dist ) );
                     ++sepCount;
                 }
+            }
+        }
+        
+        // Loop through all obstacles and avoid them
+        for( var j = 0; j < this.obs.length; ++j ) {
+            var cpos = this.closestPoint( this.obs[j].pos, this.boids[i].pos );
+            var dist = this.obs[j].distance( cpos );
+            
+            if( dist < OBS_THRESH && dist > 0 ) {
+                dist += 0.001;
+                var sepvec = cpos.minus( this.obs[j].pos ).normalize();
+                separate = separate.plus( sepvec.multiply( 1.0 / dist ) );
+                ++sepCount;
             }
         }
         
