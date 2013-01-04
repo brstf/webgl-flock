@@ -6,7 +6,7 @@
  * Global properties across all Boids
  */
 var MAX_VEL = 0.5;
-var MAX_FORCE = 0.05;
+var MAX_FORCE = 0.025;
 
 var COHERE_COEFF = 0.5;
 var ALIGN_COEFF = 0.5;

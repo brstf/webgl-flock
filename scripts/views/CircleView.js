@@ -1,27 +1,27 @@
 /*
- * CircleObstacleView.js - Object that handles display of circle obstacle objects.
+ * CircleView.js - Object that handles display of circles.
  */
  
-CircleObstacleView.prototype = new BaseView();
-CircleObstacleView.prototype.constructor = CircleObstacleView;
-CircleObstacleView.prototype.parent = BaseView.prototype;
+CircleView.prototype = new BaseView();
+CircleView.prototype.constructor = CircleView;
+CircleView.prototype.parent = BaseView.prototype;
 
 /**
  * Constructor that takes in a WebGL context to initialize this view with.
  * @param gl WebGL context associated with the views object.
  */
-function CircleObstacleView( gl ) {   
+function CircleView( gl ) {   
     this.gl = gl;
-    this.NUM_VERTICES = 50;
+    this.NUM_VERTICES = 10;
     
     this.mvmat = mat4.create();
     this.init();
     
     // Set the color of this object to be a pale red
-    this.color = new Float32Array( [ 1.0, 0.5, 0.5, 1.0 ] );
+    this.color = new Float32Array( [ 0.0, 0.0, 1.0, 1.0 ] );
 }
 
-CircleObstacleView.prototype.init = function() {
+CircleView.prototype.init = function() {
     this.parent.init.call( this );
     
     // Bind the vertex buffer and add the circle vertices
@@ -48,11 +48,11 @@ CircleObstacleView.prototype.init = function() {
     this.ind.length = inds.length;
 }
 
-CircleObstacleView.prototype.draw = function( obs, scale, mvloc ) {
+CircleView.prototype.draw = function( pos, r, scale, mvloc ) {
     // Translate and rotate to match the obstacle's position
     mat4.identity( this.mvmat );
-    mat4.translate( this.mvmat, [ scale * obs.pos.x, scale * obs.pos.y, 0.0 ], this.mvmat );
-    mat4.scale( this.mvmat, [ scale * obs.rad, scale * obs.rad, obs.rad ], this.mvmat );
+    mat4.translate( this.mvmat, [ scale * pos.x, scale * pos.y, 0.0 ], this.mvmat );
+    mat4.scale( this.mvmat, [ scale * r, scale * r, 1.0 ], this.mvmat );
     
 
     // Send the matrix data to the shader location specified, and

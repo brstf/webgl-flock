@@ -9,7 +9,7 @@ var NUM_BOIDS = 100;
 function update( time ) {
     // Setup another request
     requestId = requestAnimFrame( update, document.getElementById('c') );
-    
+
     world.update();
     world.move();
     
@@ -54,7 +54,8 @@ var reshape = function() {
 function main() {
     // Get the WebGL canvas, and initialize WebGL
     var c = document.getElementById('c');
-    gl = WebGLDebugUtils.makeDebugContext( WebGLUtils.setupWebGL( c ) );
+    //gl = WebGLDebugUtils.makeDebugContext( WebGLUtils.setupWebGL( c ) );
+    gl = WebGLUtils.setupWebGL( c );
     
     // Escape on any error
     if(!gl) {
@@ -66,7 +67,7 @@ function main() {
     c.onmousedown = mouseDown;
     c.onmouseup = mouseUp;
     c.onmousemove = mouseMove;
-    
+
     // Initialize all variables and display the scene
     init();
     view.draw( world );

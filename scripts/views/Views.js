@@ -14,6 +14,7 @@ function Views( gl ) {
     this.projmat = mat4.create();
     this.boidview = new BoidView( this.gl );
     this.circobsview = new CircleObstacleView( this.gl );
+    this.circleview = new CircleView( this.gl );
     
     this.initShaders();
     this.initQuad();
@@ -25,6 +26,7 @@ function Views( gl ) {
 Views.prototype.init = function() {
     this.boidview.init();
     this.circobsview.init();
+    this.circleview.init();
     
     this.initShaders();
     this.initQuad();
@@ -176,6 +178,22 @@ Views.prototype.draw = function( world ) {
     gl.disableVertexAttribArray( this.prog_loc.aTexCoord );
     
     // Bind the boid vbo to be the current array buffer
+    gl.bindBuffer( gl.ARRAY_BUFFER, this.circleview.getVBO() );
+    gl.enableVertexAttribArray( this.prog_loc.aPosition );
+    gl.vertexAttribPointer( this.prog_loc.aPosition, 3, gl.FLOAT, false, 12, 0 );
+    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, this.circleview.getIndexBuffer() );
+    gl.uniform4fv( this.prog_loc.uColor, this.circleview.getColor() );
+    for( var i = 0; i < world.boids.length; ++i ) {
+        this.circleview.draw( world.boids[i].pos, 0.0015, this.height, this.prog_loc.uMVMatrix );
+    }
+    
+    gl.bindFramebuffer( gl.FRAMEBUFFER, null );
+    this.drawQuad( 1 );
+    
+    gl.uniform1i( this.prog_loc.uUseTexture, 0 );
+    gl.disableVertexAttribArray( this.prog_loc.aTexCoord );
+    
+    // Bind the boid vbo to be the current array buffer
     gl.bindBuffer( gl.ARRAY_BUFFER, this.boidview.getVBO() );
     gl.enableVertexAttribArray( this.prog_loc.aPosition );
     gl.vertexAttribPointer( this.prog_loc.aPosition, 3, gl.FLOAT, false, 12, 0 );
@@ -193,9 +211,6 @@ Views.prototype.draw = function( world ) {
     for( var i = 0; i < world.obs.length; ++i ) {
         this.circobsview.draw( world.obs[i], this.height, this.prog_loc.uMVMatrix );
     }
-    
-    gl.bindFramebuffer( gl.FRAMEBUFFER, null );
-    this.drawQuad( 1 );
 }
 
 Views.prototype.drawQuad = function( ver ) {
@@ -218,5 +233,6 @@ Views.prototype.drawQuad = function( ver ) {
     gl.vertexAttribPointer( this.prog_loc.aPosition, 3, gl.FLOAT, false, 20, 0 );
     gl.enableVertexAttribArray( this.prog_loc.aTexCoord );
     gl.vertexAttribPointer( this.prog_loc.aTexCoord, 2, gl.FLOAT, false, 20, 12 );
+    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, this.quadind );
     gl.drawElements( gl.TRIANGLE_STRIP, 4, gl.UNSIGNED_SHORT, 0 );
 }

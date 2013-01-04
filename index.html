@@ -11,6 +11,7 @@
     <script src="scripts/Obstacles.js" type="text/javascript"></script>
     <script src="scripts/views/BaseView.js" type="text/javascript"></script>
     <script src="scripts/views/BoidView.js" type="text/javascript"></script>
+    <script src="scripts/views/CircleView.js" type="text/javascript"></script>
     <script src="scripts/views/CircleObstacleView.js" type="text/javascript"></script>
     <script src="scripts/views/Views.js" type="text/javascript"></script>
     <script src="scripts/webgl-debug.js" type="text/javascript"></script>
@@ -41,7 +42,7 @@
         
         void main() {
             if( uUseTexture == 2 ) {
-                gl_FragColor = vec4( texture2D( uTexture, vTexCoord ).rgb + 0.1, 1.0);
+                gl_FragColor = vec4( texture2D( uTexture, vTexCoord ).rgb + 0.05, 1.0);
             } else if( uUseTexture == 1 ) {
                 gl_FragColor = texture2D( uTexture, vTexCoord );
             } else {
