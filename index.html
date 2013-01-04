@@ -20,19 +20,34 @@
         uniform mat3 uNMatrix;     
 
         attribute vec3 aPosition;
+        attribute vec2 aTexCoord;
+        
+        varying vec2 vTexCoord;
 
         void main() {
             //Transform geometry
             gl_Position = uPMatrix * uMVMatrix * vec4(aPosition, 1.0);
+            vTexCoord = aTexCoord;
         }
     </script>
     <script id="fshader" type="x-shader/x-fragment">
         precision mediump float;
         
         uniform vec4 uColor;
+        uniform sampler2D uTexture;
+        uniform int uUseTexture;
 
+        varying vec2 vTexCoord;
+        
         void main() {
-            gl_FragColor = uColor;
+            if( uUseTexture == 2 ) {
+                gl_FragColor = vec4( texture2D( uTexture, vTexCoord ).rgb + 0.1, 1.0);
+            } else if( uUseTexture == 1 ) {
+                gl_FragColor = texture2D( uTexture, vTexCoord );
+            } else {
+                gl_FragColor = uColor;
+            }
+            
         }        
     </script>
     <link rel="stylesheet" type="text/css" href="styles.css" />

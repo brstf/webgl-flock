@@ -38,11 +38,11 @@ BoidView.prototype.init = function() {
 BoidView.prototype.draw = function( boid, scale, mvloc ) {
     // Translate and rotate to match the boid's position
     mat4.identity( this.mvmat );
-    mat4.translate( this.mvmat, [ boid.pos.x, boid.pos.y, 0.0 ], this.mvmat );
+    mat4.translate( this.mvmat, [ boid.pos.x * scale, boid.pos.y * scale, 0.0 ], this.mvmat );
     var theta = Math.acos( boid.vel.x / boid.vel.magnitude() ) * ( boid.vel.y > 0.0 ? 1.0 : -1.0 );
     
     mat4.rotateZ( this.mvmat, theta, this.mvmat );
-    mat4.scale( this.mvmat, [ scale, scale, scale ], this.mvmat );
+    mat4.scale( this.mvmat, [ 10, 10, 10], this.mvmat );
     
 
     // Send the matrix data to the shader location specified, and

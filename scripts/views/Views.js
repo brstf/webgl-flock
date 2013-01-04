@@ -9,13 +9,14 @@
  */
 function Views( gl ) { 
     this.gl = gl;
-    this.gl.clearColor( 0.0, 0.0, 0.0, 0.0 );
+    this.gl.clearColor( 1.0, 1.0, 1.0, 0.0 );
     this.gl.disable(gl.BLEND);
     this.projmat = mat4.create();
     this.boidview = new BoidView( this.gl );
     this.circobsview = new CircleObstacleView( this.gl );
     
     this.initShaders();
+    this.initQuad();
 }
 
 /**
@@ -23,18 +24,70 @@ function Views( gl ) {
  */
 Views.prototype.init = function() {
     this.boidview.init();
+    this.circobsview.init();
     
     this.initShaders();
+    this.initQuad();
+    this.initRTT( 512, 512 );
+}
+
+Views.prototype.initQuad = function() {
+    var gl = this.gl;
+    
+    // Create the quad buffers
+    this.quadvbo = gl.createBuffer();
+    this.quadind = gl.createBuffer();
+    
+    gl.bindBuffer( gl.ARRAY_BUFFER, this.quadvbo );
+    var verts = new Float32Array( [ 0.0, 1.0, 0.0, 0.0, 1.0,
+                                    1.0, 1.0, 0.0, 1.0, 1.0,
+                                    0.0, 0.0, 0.0, 0.0, 0.0,
+                                    1.0, 0.0, 0.0, 1.0, 0.0 ] );
+    gl.bufferData( gl.ARRAY_BUFFER, verts, gl.STATIC_DRAW );
+    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, this.quadind );
+    gl.bufferData( gl.ELEMENT_ARRAY_BUFFER, new Uint16Array([0,1,2,3]), gl.STATIC_DRAW );
+}
+
+Views.prototype.initRTT = function( w, h ) {
+    var wi = Math.pow( 2, Math.ceil( Math.log( w ) / Math.log( 2 ) ) );
+    var hi = Math.pow( 2, Math.ceil( Math.log( h ) / Math.log( 2 ) ) );
+    
+    var gl = this.gl;
+    this.rttFramebuffer = gl.createFramebuffer();
+    this.rttFramebuffer.width = wi;
+    this.rttFramebuffer.height = hi;
+    gl.bindFramebuffer( gl.FRAMEBUFFER, this.rttFramebuffer );
+    
+    this.rttTexture = gl.createTexture();
+    gl.bindTexture( gl.TEXTURE_2D, this.rttTexture );
+    gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texImage2D( gl.TEXTURE_2D, 0, gl.RGBA, wi, hi, 0, gl.RGBA, gl.UNSIGNED_BYTE, null );
+    
+    this.renderbuffer = gl.createRenderbuffer();
+    gl.bindRenderbuffer( gl.RENDERBUFFER, this.renderbuffer );
+    gl.renderbufferStorage( gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, wi, hi );
+    
+    gl.framebufferTexture2D( gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.rttTexture, 0 );
+    gl.framebufferRenderbuffer( gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.renderbuffer );
+    
+    gl.clear( gl.COLOR_BUFFER_BIT );
+    
+    gl.bindTexture( gl.TEXTURE_2D, null );
+    gl.bindRenderbuffer( gl.RENDERBUFFER, null );
+    gl.bindFramebuffer( gl.FRAMEBUFFER, null );
 }
 
 Views.prototype.reshape = function( width, height ) {
     // Set the WebGL viewport based on this new width and height
     this.gl.viewport( 0, 0, width, height );
-    this.width = width / height;
-    this.height = 1.0;
+    this.width = width;//width / height;
+    this.height = height;//1.0;
     
     // Get the aspect ratio, and use this to setup the projection matrix
     mat4.ortho( 0.0, this.width, 0.0, this.height, -10.0, 10.0, this.projmat);
+    
+    this.initRTT( width, height );
 }
 
 /**
@@ -96,7 +149,10 @@ Views.prototype.initShaders = function() {
     gl_program_loc.uMVMatrix = gl.getUniformLocation(gl_program, "uMVMatrix");
     gl_program_loc.uPMatrix  = gl.getUniformLocation(gl_program, "uPMatrix");
     gl_program_loc.uColor    = gl.getUniformLocation(gl_program, "uColor");
+    gl_program_loc.uTexture  = gl.getUniformLocation(gl_program, "uTexture");
+    gl_program_loc.uUseTexture = gl.getUniformLocation(gl_program, "uUseTexture");
     gl_program_loc.aPosition = gl.getAttribLocation(gl_program, "aPosition");
+    gl_program_loc.aTexCoord = gl.getAttribLocation(gl_program, "aTexCoord");
     
     this.prog_loc = gl_program_loc;
     this.prog = gl_program;
@@ -108,13 +164,16 @@ Views.prototype.initShaders = function() {
  */
 Views.prototype.draw = function( world ) {
     var gl = this.gl;
-    gl.clear( gl.COLOR_BUFFER_BIT );
+    
+    gl.bindFramebuffer( gl.FRAMEBUFFER, this.rttFramebuffer );
     
     // Use the created shader program
     gl.useProgram( this.prog );
     
-    // Upload the projection matrix to the shader
-    gl.uniformMatrix4fv( this.prog_loc.uPMatrix, false, this.projmat );
+    this.drawQuad( 2 );
+    
+    gl.uniform1i( this.prog_loc.uUseTexture, 0 );
+    gl.disableVertexAttribArray( this.prog_loc.aTexCoord );
     
     // Bind the boid vbo to be the current array buffer
     gl.bindBuffer( gl.ARRAY_BUFFER, this.boidview.getVBO() );
@@ -123,7 +182,7 @@ Views.prototype.draw = function( world ) {
     gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, this.boidview.getIndexBuffer() );
     gl.uniform4fv( this.prog_loc.uColor, this.boidview.getColor() );
     for( var i = 0; i < world.boids.length; ++i ) {
-        this.boidview.draw( world.boids[i], 0.01, this.prog_loc.uMVMatrix );
+        this.boidview.draw( world.boids[i], this.height, this.prog_loc.uMVMatrix );
     }
     
     // Bind the circle obstacle vbo to draw the circle obstacles
@@ -132,6 +191,32 @@ Views.prototype.draw = function( world ) {
     gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, this.circobsview.getIndexBuffer() );
     gl.uniform4fv( this.prog_loc.uColor, this.circobsview.getColor() );
     for( var i = 0; i < world.obs.length; ++i ) {
-        this.circobsview.draw( world.obs[i], this.prog_loc.uMVMatrix );
+        this.circobsview.draw( world.obs[i], this.height, this.prog_loc.uMVMatrix );
     }
+    
+    gl.bindFramebuffer( gl.FRAMEBUFFER, null );
+    this.drawQuad( 1 );
+}
+
+Views.prototype.drawQuad = function( ver ) {
+    var gl = this.gl;
+    
+    // Bind the rtt texture
+    gl.activeTexture( gl.TEXTURE0 );
+    gl.bindTexture( gl.TEXTURE_2D, this.rttTexture );
+    gl.uniform1i( this.prog_loc.uTexture, 0 );
+    
+    // Upload the projection matrix to the shader
+    gl.uniformMatrix4fv( this.prog_loc.uPMatrix, false, this.projmat );
+    gl.uniform1i( this.prog_loc.uUseTexture, ver );
+    var mvmat = mat4.create();
+    mat4.identity( mvmat );
+    mat4.scale( mvmat, [ this.rttFramebuffer.width, this.rttFramebuffer.height, 1.0 ], mvmat );
+    gl.uniformMatrix4fv( this.prog_loc.uMVMatrix, false, mvmat );
+    gl.bindBuffer( gl.ARRAY_BUFFER, this.quadvbo );
+    gl.enableVertexAttribArray( this.prog_loc.aPosition );
+    gl.vertexAttribPointer( this.prog_loc.aPosition, 3, gl.FLOAT, false, 20, 0 );
+    gl.enableVertexAttribArray( this.prog_loc.aTexCoord );
+    gl.vertexAttribPointer( this.prog_loc.aTexCoord, 2, gl.FLOAT, false, 20, 12 );
+    gl.drawElements( gl.TRIANGLE_STRIP, 4, gl.UNSIGNED_SHORT, 0 );
 }

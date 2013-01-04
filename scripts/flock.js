@@ -45,7 +45,7 @@ var reshape = function() {
     canvas.height = document.body.clientHeight;
     
     view.reshape( canvas.width, canvas.height );
-    world.setBounds( view.width, view.height );
+    world.setBounds( canvas.width / canvas.height, 1.0 );
 }
 
 /**

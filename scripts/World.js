@@ -4,7 +4,7 @@
  *            for a collection of Boids.
  */
  
-var CLOSE_THRESH = 0.1;
+var CLOSE_THRESH = 0.11;
 var SEP_THRESH = 0.05;
 var OBS_THRESH = 0.025;
 
