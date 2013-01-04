@@ -51,8 +51,8 @@ CircleObstacleView.prototype.init = function() {
 CircleObstacleView.prototype.draw = function( obs, scale, mvloc ) {
     // Translate and rotate to match the obstacle's position
     mat4.identity( this.mvmat );
-    mat4.translate( this.mvmat, [ 923 * obs.pos.x, 923 * obs.pos.y, 0.0 ], this.mvmat );
-    mat4.scale( this.mvmat, [ 923 * obs.rad, 923 * obs.rad, obs.rad ], this.mvmat );
+    mat4.translate( this.mvmat, [ scale * obs.pos.x, scale * obs.pos.y, 0.0 ], this.mvmat );
+    mat4.scale( this.mvmat, [ scale * obs.rad, scale * obs.rad, obs.rad ], this.mvmat );
     
 
     // Send the matrix data to the shader location specified, and
