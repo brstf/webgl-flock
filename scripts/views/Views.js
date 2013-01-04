@@ -95,6 +95,7 @@ Views.prototype.initShaders = function() {
     gl_program_loc = {};
     gl_program_loc.uMVMatrix = gl.getUniformLocation(gl_program, "uMVMatrix");
     gl_program_loc.uPMatrix  = gl.getUniformLocation(gl_program, "uPMatrix");
+    gl_program_loc.uColor    = gl.getUniformLocation(gl_program, "uColor");
     gl_program_loc.aPosition = gl.getAttribLocation(gl_program, "aPosition");
     
     this.prog_loc = gl_program_loc;
@@ -120,6 +121,7 @@ Views.prototype.draw = function( world ) {
     gl.enableVertexAttribArray( this.prog_loc.aPosition );
     gl.vertexAttribPointer( this.prog_loc.aPosition, 3, gl.FLOAT, false, 12, 0 );
     gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, this.boidview.getIndexBuffer() );
+    gl.uniform4fv( this.prog_loc.uColor, this.boidview.getColor() );
     for( var i = 0; i < world.boids.length; ++i ) {
         this.boidview.draw( world.boids[i], 0.01, this.prog_loc.uMVMatrix );
     }
@@ -128,6 +130,7 @@ Views.prototype.draw = function( world ) {
     gl.bindBuffer( gl.ARRAY_BUFFER, this.circobsview.getVBO() );
     gl.vertexAttribPointer( this.prog_loc.aPosition, 3, gl.FLOAT, false, 12, 0 );
     gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, this.circobsview.getIndexBuffer() );
+    gl.uniform4fv( this.prog_loc.uColor, this.circobsview.getColor() );
     for( var i = 0; i < world.obs.length; ++i ) {
         this.circobsview.draw( world.obs[i], this.prog_loc.uMVMatrix );
     }

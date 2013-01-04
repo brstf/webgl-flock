@@ -2,9 +2,9 @@
  * BoidView.js - Object that handles display of boid objects.
  */
  
-BoidView.prototype = new View();
+BoidView.prototype = new BaseView();
 BoidView.prototype.constructor = BoidView;
-BoidView.prototype.parent = View.prototype;
+BoidView.prototype.parent = BaseView.prototype;
 
 /**
  * Constructor that takes in a WebGL context to initialize this view with.
@@ -15,6 +15,9 @@ function BoidView( gl ) {
     
     this.mvmat = mat4.create();
     this.init();
+    
+    // Set the color of this object to be blue
+    this.color = new Float32Array( [ 0.0, 0.0, 1.0, 1.0 ] );
 }
 
 BoidView.prototype.init = function() {

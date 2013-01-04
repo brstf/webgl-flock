@@ -2,9 +2,9 @@
  * CircleObstacleView.js - Object that handles display of boid objects.
  */
  
-CircleObstacleView.prototype = new View();
+CircleObstacleView.prototype = new BaseView();
 CircleObstacleView.prototype.constructor = CircleObstacleView;
-CircleObstacleView.prototype.parent = View.prototype;
+CircleObstacleView.prototype.parent = BaseView.prototype;
 
 /**
  * Constructor that takes in a WebGL context to initialize this view with.
@@ -16,6 +16,9 @@ function CircleObstacleView( gl ) {
     
     this.mvmat = mat4.create();
     this.init();
+    
+    // Set the color of this object to be a pale red
+    this.color = new Float32Array( [ 1.0, 0.5, 0.5, 1.0 ] );
 }
 
 CircleObstacleView.prototype.init = function() {
@@ -55,5 +58,5 @@ CircleObstacleView.prototype.draw = function( obs, mvloc ) {
     // Send the matrix data to the shader location specified, and
     // draw the obstacle
     this.gl.uniformMatrix4fv( mvloc, false, this.mvmat );
-    this.gl.drawElements( this.gl.TRIANGLE_FAN, this.ind.length-2, this.gl.UNSIGNED_SHORT, 0 );
+    this.gl.drawElements( this.gl.TRIANGLE_FAN, this.ind.length, this.gl.UNSIGNED_SHORT, 0 );
 }

@@ -72,6 +72,14 @@ World.prototype.removeBoid = function( bi ) {
     this.boids.splice( bi, 1 );
 }
 
+/**
+ * Adds an obstacle to the world with the given parameters.
+ * If any parameter is unspecified, it will be randomly 
+ * generated.
+ * @param x x-location of the obstacle
+ * @param y y-location of the obstacle
+ * @param r radius of the obstacle
+ */
 World.prototype.addObstacle = function( x, y, r ) {
     if( x === undefined ) {
         x = Math.random() * this.width;
@@ -86,6 +94,14 @@ World.prototype.addObstacle = function( x, y, r ) {
     }
     
     this.obs.push( new CircleObstacle( x, y, r ) );
+}
+
+World.prototype.getObstacle = function( i ) {
+    if( i >= 0 && i < this.obs.length ) {
+        return this.obs[i];
+    } else {
+        return null;
+    }
 }
 
 /** Function to return the wrap around point of pos2 that is closest
