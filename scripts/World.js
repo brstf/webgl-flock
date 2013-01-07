@@ -180,7 +180,7 @@ World.prototype.update = function() {
             var cpos = this.closestPoint( this.obs[j].pos, this.boids[i].pos );
             var dist = this.obs[j].distance( cpos );
             
-            if( dist < OBS_THRESH && dist > 0 ) {
+            if( dist < OBS_THRESH ) {
                 dist += 0.001;
                 var sepvec = cpos.minus( this.obs[j].pos ).normalize();
                 separate = separate.plus( sepvec.multiply( 1.0 / dist ) );
