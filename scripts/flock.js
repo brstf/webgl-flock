@@ -142,7 +142,7 @@ function mouseMove( ev ) {
     var pos = new Vec2( x, y );
     
     if( sel_obs === null ) {
-        for( var i = 0; i < world.obs.length; ++i ) {
+        for( var i = world.obs.length - 1; i >= 0; --i ) {
             if( world.obs[i].nearEdge( pos ) ) {
                 view.selectObstacle( i, true, true );
                 return;
