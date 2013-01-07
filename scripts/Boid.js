@@ -37,6 +37,7 @@ function Boid( x, y, vx, vy ) {
     
     this.pos  = new Vec2(  x,  y );
     this.vel  = new Vec2( vx, vy );
+    this.vel.limit( MAX_VEL );
 }
 
 /**

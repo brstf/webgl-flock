@@ -195,10 +195,10 @@ World.prototype.update = function() {
             if( sepCount > 0 ) {
                 separate = separate.multiply( 1.0 / sepCount );
             }
+            
+            // Update the boid's velocity with the calculated vectors
+            this.boids[i].flock( coherence, align, separate );
         }
-        
-        // Update the boid's velocity with the calculated vectors
-        this.boids[i].flock( coherence, align, separate );
     }
 }
 
