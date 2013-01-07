@@ -73,6 +73,14 @@ World.prototype.removeBoid = function( bi ) {
 }
 
 /**
+ * Retrieve the number of boids currently active.
+ * @return Number of boids in the world
+ */
+World.prototype.getNumBoids = function() {
+    return this.boids.length;
+}
+
+/**
  * Adds an obstacle to the world with the given parameters.
  * If any parameter is unspecified, it will be randomly 
  * generated.

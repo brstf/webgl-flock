@@ -10,6 +10,37 @@ body, html {
     left: 10px;
     top: 300px;
 }
+
 #c {
     margin: 12px;
 }
+
+#boid_count_circle {
+    position:absolute;
+    left:10px;
+    top:10px;
+    width: 70px;
+    height:70px;
+    border-radius: 50%;
+    border:2px solid #ACACAC;
+}
+
+#boid_count {
+    position: absolute;
+    left: 0px;
+    top: 21px;
+    width: 70px;
+    color: #ACACAC;
+    font-size: 24px;
+    font-family: Arial, Helvetica;
+    text-align: center;
+}
+
+#boid_count_circle:hover {
+    border:2px solid #3C3C3C;
+}
+
+#boid_count.hover {
+    color: #3C3C3C;
+}
+

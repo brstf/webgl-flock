@@ -68,6 +68,13 @@ function main() {
     c.onmousedown = mouseDown;
     c.onmouseup = mouseUp;
     c.onmousemove = mouseMove;
+    
+    // Setup the boid counter and associated functions:
+    var bc = document.getElementById('boid_count_circle');
+    bc.onmouseover = mouseOverBC;
+    bc.onmouseout = mouseOutBC;
+    bc.onmousewheel = mouseWheelBC;
+    document.getElementById('boid_count').innerHTML = NUM_BOIDS;
 
     // Initialize all variables and display the scene
     init();
@@ -154,4 +161,32 @@ function mouseMove( ev ) {
     } else {
         obs.rad = pos.minus( obs.pos ).magnitude();
     }
+}
+
+function mouseOverBC( ev ) {
+    document.getElementById('boid_count').className = "hover";
+}
+
+function mouseOutBC( ev ) {
+    document.getElementById('boid_count').className = "";
+}
+
+function mouseWheelBC( ev ) {
+    if (!event) /* For IE. */
+        event = window.event;
+    if (event.wheelDelta) { /* IE/Opera. */
+        delta = event.wheelDelta/120;
+    } else if (event.detail) { /** Mozilla case. */
+        /** In Mozilla, sign of delta is different than in IE.
+         * Also, delta is multiple of 3.
+         */
+        delta = -event.detail/3;
+    }
+    
+    if( delta > 0 ) {
+        world.addBoid();
+    } else {
+        world.removeBoid();
+    }
+    document.getElementById('boid_count').innerHTML = world.getNumBoids();
 }
