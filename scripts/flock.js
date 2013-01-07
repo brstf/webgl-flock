@@ -2,7 +2,8 @@ var gl;
 var requestId;
 var world;
 var view;
-var obsi = null;
+var sel_obs = null;
+var mouse_pos = null;
 
 var NUM_BOIDS = 100;
 
@@ -79,13 +80,33 @@ function main() {
  * @param ev Mouse down event object
  */
 function mouseDown( ev ) {
-    obsi = world.obs.length;
-    
+    // Project the cursors location into world space
     var c = document.getElementById('c');
     var offsets = c.getBoundingClientRect();
     var x = ( ev.clientX - offsets.left ) / c.width * world.width;
     var y = ( 1.0 - ( ev.clientY - offsets.top ) / c.height ) * world.height;
+    
+    var pos = new Vec2( x, y );
+    
+    // Now loop through all obstacles to see if the user is selecting 
+    // an obstacle
+    for( var i = 0; i < world.obs.length; ++i ) {
+        if( world.obs[i].nearEdge( pos ) ) {
+            sel_obs = i;
+            view.selectObstacle( sel_obs, false, true );
+            return;
+        } else if( world.obs[i].distance( pos ) == 0 ) {
+            sel_obs = i;
+            mouse_pos = world.obs[i].pos.minus( pos );
+            view.selectObstacle( sel_obs, false, false );
+            return;
+        }
+    }
+    
+    // If the cursor wasn't on any obstacle, add a new one
+    sel_obs = world.obs.length;
     world.addObstacle( x, y, 0 );
+    view.selectObstacle( sel_obs, false, true );
 }
 
 /**
@@ -93,7 +114,12 @@ function mouseDown( ev ) {
  * @param ev Mouse up event object
  */
 function mouseUp( ev ) {
-    obsi = null;
+    if( world.obs[ sel_obs ].rad < 0.005 ) {
+        world.obs[ sel_obs ].rad = 0.005;
+    }
+    sel_obs = null;
+    mouse_pos = null;
+    view.deselectObstacle();
 }
 
 /**
@@ -101,15 +127,31 @@ function mouseUp( ev ) {
  * @param ev Mouse motion event object
  */
 function mouseMove( ev ) {
-    if( obsi === null ) {
-        return;
-    }
-    
-    var obs = world.getObstacle( obsi );
+    // Project mouse coordinates into world coordinates
     var c = document.getElementById('c');
     var offsets = c.getBoundingClientRect();
     var x = ( ev.clientX - offsets.left ) / c.width * world.width;
     var y = ( 1.0 - ( ev.clientY - offsets.top ) / c.height ) * world.height;
     var pos = new Vec2( x, y );
-    obs.rad = pos.minus( obs.pos ).magnitude();
+    
+    if( sel_obs === null ) {
+        for( var i = 0; i < world.obs.length; ++i ) {
+            if( world.obs[i].nearEdge( pos ) ) {
+                view.selectObstacle( i, true, true );
+                return;
+            } else if( world.obs[i].distance( pos ) == 0 ) {
+                view.selectObstacle( i, true, false );
+                return;
+            }
+        }
+        view.deselectObstacle();
+        return;
+    }
+    
+    var obs = world.obs[ sel_obs ];
+    if( mouse_pos !== null ) {
+        obs.pos = pos.plus( mouse_pos );
+    } else {
+        obs.rad = pos.minus( obs.pos ).magnitude();
+    }
 }

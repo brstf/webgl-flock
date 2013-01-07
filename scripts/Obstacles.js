@@ -9,6 +9,7 @@
  */
 function Obstacle( x, y ) {
     this.pos = new Vec2( x, y );
+    this.hovered_edge = false;
 }
 
 /**
@@ -48,6 +49,20 @@ function CircleObstacle( x, y, r ) {
 CircleObstacle.prototype.distance = function( pos ) {
     var dist = pos.minus( this.pos ).magnitude() - this.rad
     return dist > 0 ? dist : 0;
+}
+
+/**
+ * Tests whether or not a given position is sufficiently close 
+ * to the edge of this obstacle.
+ * @param pos Vec2 Position to test
+ * @return True if pos is sufficiently close to the edge, false otherwise
+ */
+CircleObstacle.prototype.nearEdge = function( pos ) {
+    var dist = pos.minus( this.pos ).magnitude() - this.rad;
+    if( Math.abs( dist ) < 0.01 ) {
+        return true;
+    }
+    return false;
 }
 
 /**

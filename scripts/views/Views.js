@@ -16,6 +16,11 @@ function Views( gl ) {
     this.circobsview = new CircleObstacleView( this.gl );
     this.circleview = new CircleView( this.gl );
     
+    this.select = {};
+    this.select.i = null;
+    this.select.hover = false;
+    this.select.edge = false;
+    
     this.initShaders();
     this.initQuad();
 }
@@ -33,6 +38,9 @@ Views.prototype.init = function() {
     this.initRTT( 512, 512 );
 }
 
+/**
+ * Initializes buffers for a simple quad.
+ */
 Views.prototype.initQuad = function() {
     var gl = this.gl;
     
@@ -161,6 +169,27 @@ Views.prototype.initShaders = function() {
 }
 
 /**
+ * Sets a selected obstacle for the view to draw differently.
+ * @param sel_obs Index of the selected obstacle from the world
+ * @param hover Boolean indicating if this is hovered over or selected
+ *              true if there is hover, false otherwise
+ * @param edge Boolean indicating if only an edge is selected
+ */
+Views.prototype.selectObstacle = function( sel_obs, hover, edge ) {
+    this.select.i = sel_obs;
+    this.select.hover = hover;
+    this.select.edge = edge;
+}
+
+/**
+ * Deselects any obstacle that may be selected.
+ */
+Views.prototype.deselectObstacle = function() {
+    this.select.i = null;
+    this.select.edge = false;
+}
+
+/**
  * Draws the entire flocking scene.
  * @param world World object to draw
  */
@@ -193,23 +222,31 @@ Views.prototype.draw = function( world ) {
     gl.uniform1i( this.prog_loc.uUseTexture, 0 );
     gl.disableVertexAttribArray( this.prog_loc.aTexCoord );
     
+    
+    // Bind the circle obstacle vbo to draw the circle obstacles
+    gl.bindBuffer( gl.ARRAY_BUFFER, this.circobsview.getVBO() );
+    gl.enableVertexAttribArray( this.prog_loc.aPosition );
+    gl.vertexAttribPointer( this.prog_loc.aPosition, 3, gl.FLOAT, false, 12, 0 );
+    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, this.circobsview.getIndexBuffer() );
+    for( var i = 0; i < world.obs.length; ++i ) {
+        var select = 0; 
+        if( i == this.select.i ) {
+            select = 1;
+            if( this.select.hover ) {
+                select += 1;
+            }
+        }
+        this.circobsview.draw( world.obs[i], select, this.select.edge, 
+                this.height, this.prog_loc );
+    }
+    
     // Bind the boid vbo to be the current array buffer
     gl.bindBuffer( gl.ARRAY_BUFFER, this.boidview.getVBO() );
-    gl.enableVertexAttribArray( this.prog_loc.aPosition );
     gl.vertexAttribPointer( this.prog_loc.aPosition, 3, gl.FLOAT, false, 12, 0 );
     gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, this.boidview.getIndexBuffer() );
     gl.uniform4fv( this.prog_loc.uColor, this.boidview.getColor() );
     for( var i = 0; i < world.boids.length; ++i ) {
         this.boidview.draw( world.boids[i], this.height, this.prog_loc.uMVMatrix );
-    }
-    
-    // Bind the circle obstacle vbo to draw the circle obstacles
-    gl.bindBuffer( gl.ARRAY_BUFFER, this.circobsview.getVBO() );
-    gl.vertexAttribPointer( this.prog_loc.aPosition, 3, gl.FLOAT, false, 12, 0 );
-    gl.bindBuffer( gl.ELEMENT_ARRAY_BUFFER, this.circobsview.getIndexBuffer() );
-    gl.uniform4fv( this.prog_loc.uColor, this.circobsview.getColor() );
-    for( var i = 0; i < world.obs.length; ++i ) {
-        this.circobsview.draw( world.obs[i], this.height, this.prog_loc.uMVMatrix );
     }
 }
 

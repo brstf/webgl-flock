@@ -53,7 +53,6 @@ CircleView.prototype.draw = function( pos, r, scale, mvloc ) {
     mat4.identity( this.mvmat );
     mat4.translate( this.mvmat, [ scale * pos.x, scale * pos.y, 0.0 ], this.mvmat );
     mat4.scale( this.mvmat, [ scale * r, scale * r, 1.0 ], this.mvmat );
-    
 
     // Send the matrix data to the shader location specified, and
     // draw the obstacle

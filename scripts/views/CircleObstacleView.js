@@ -19,6 +19,11 @@ function CircleObstacleView( gl ) {
     
     // Set the color of this object to be a pale red
     this.color = new Float32Array( [ 1.0, 0.5, 0.5, 1.0 ] );
+    this.ring_color = new Float32Array( [ 1.0, 0.3, 0.3, 1.0 ] );
+    this.hov_color = new Float32Array( [ 0.5, 1.0, 0.5, 1.0 ] );
+    this.hov_ring_color = new Float32Array( [ 0.3, 1.0, 0.3, 1.0 ] );
+    this.sel_color = new Float32Array( [ 0.5, 0.5, 1.0, 1.0 ] );
+    this.sel_ring_color = new Float32Array( [ 0.3, 0.3, 1.0, 1.0 ] );
 }
 
 CircleObstacleView.prototype.init = function() {
@@ -48,15 +53,38 @@ CircleObstacleView.prototype.init = function() {
     this.ind.length = inds.length;
 }
 
-CircleObstacleView.prototype.draw = function( obs, scale, mvloc ) {
+CircleObstacleView.prototype.draw = function( obs, selected, edge, scale, prog_loc ) {
     // Translate and rotate to match the obstacle's position
     mat4.identity( this.mvmat );
     mat4.translate( this.mvmat, [ scale * obs.pos.x, scale * obs.pos.y, 0.0 ], this.mvmat );
     mat4.scale( this.mvmat, [ scale * obs.rad, scale * obs.rad, obs.rad ], this.mvmat );
-    
 
     // Send the matrix data to the shader location specified, and
     // draw the obstacle
-    this.gl.uniformMatrix4fv( mvloc, false, this.mvmat );
+    this.gl.uniformMatrix4fv( prog_loc.uMVMatrix, false, this.mvmat );
+    
+    // Set the blue color if this edge is selected, red if not
+    if( selected == 1 && edge ) {
+        this.gl.uniform4fv( prog_loc.uColor, this.sel_ring_color );
+    } else if ( selected == 2 && edge ) {
+        this.gl.uniform4fv( prog_loc.uColor, this.hov_ring_color );
+    } else {
+        this.gl.uniform4fv( prog_loc.uColor, this.ring_color );
+    }
+    
+    this.gl.drawElements( this.gl.TRIANGLE_FAN, this.ind.length, this.gl.UNSIGNED_SHORT, 0 );
+    mat4.scale( this.mvmat, [ 1.0 / (scale * obs.rad), 1.0 / (scale * obs.rad), 1.0 ], this.mvmat );
+    mat4.scale( this.mvmat, [ (scale * obs.rad) - 3, (scale * obs.rad) - 3, 1.0 ], this.mvmat );
+    this.gl.uniformMatrix4fv( prog_loc.uMVMatrix, false, this.mvmat );
+    
+    // Set the blue color if this edge is selected, red if not
+    if( selected == 1 && !edge ) {
+        this.gl.uniform4fv( prog_loc.uColor, this.sel_color );
+    } else if ( selected == 2 && !edge ) {
+        this.gl.uniform4fv( prog_loc.uColor, this.hov_color );
+    } else {
+        this.gl.uniform4fv( prog_loc.uColor, this.color );
+    }
+    
     this.gl.drawElements( this.gl.TRIANGLE_FAN, this.ind.length, this.gl.UNSIGNED_SHORT, 0 );
 }
