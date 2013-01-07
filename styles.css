@@ -28,7 +28,7 @@ body, html {
 #boid_count {
     position: absolute;
     left: 0px;
-    top: 21px;
+    top: 0px;
     width: 70px;
     color: #ACACAC;
     font-size: 24px;
@@ -37,10 +37,14 @@ body, html {
 }
 
 #boid_count_circle:hover {
-    border:2px solid #3C3C3C;
+    left:9px;
+    top: 9px;
+    border:3px solid #4C4C4C;
 }
 
 #boid_count.hover {
-    color: #3C3C3C;
+    color: #4C4C4C;
+    font-size: 26px;
+    top: -5px;
 }
 
