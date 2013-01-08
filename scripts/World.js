@@ -6,7 +6,7 @@
  
 var CLOSE_THRESH = 0.11;
 var SEP_THRESH = 0.05;
-var OBS_THRESH = 0.025;
+var OBS_THRESH = 0.075;
 
 /**
  * Constructor that accepts parameters for width and height 

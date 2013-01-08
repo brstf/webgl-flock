@@ -236,8 +236,14 @@ Views.prototype.draw = function( world ) {
                 select += 1;
             }
         }
-        this.circobsview.draw( world.obs[i], select, this.select.edge, 
-                this.height, this.prog_loc );
+        for( var x = -1; x <= 1; ++x ) {
+            for( var y = -1; y <= 1; ++y ) {
+                var temp_obs = new CircleObstacle( world.obs[i].pos.x + x * world.width,
+                        world.obs[i].pos.y + y * world.height, world.obs[i].rad );
+                this.circobsview.draw( temp_obs, select, this.select.edge, 
+                    this.height, this.prog_loc );
+            }
+        }
     }
     
     // Bind the boid vbo to be the current array buffer

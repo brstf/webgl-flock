@@ -98,13 +98,14 @@ function mouseDown( ev ) {
     // Now loop through all obstacles to see if the user is selecting 
     // an obstacle
     for( var i = 0; i < world.obs.length; ++i ) {
-        if( world.obs[i].nearEdge( pos ) ) {
+        var cpos = world.closestPoint( world.obs[i].pos, pos );
+        if( world.obs[i].nearEdge( cpos ) ) {
             sel_obs = i;
             view.selectObstacle( sel_obs, false, true );
             return;
-        } else if( world.obs[i].distance( pos ) == 0 ) {
+        } else if( world.obs[i].distance( cpos ) == 0 ) {
             sel_obs = i;
-            mouse_pos = world.obs[i].pos.minus( pos );
+            mouse_pos = world.obs[i].pos.minus( cpos );
             view.selectObstacle( sel_obs, false, false );
             return;
         }
@@ -143,10 +144,11 @@ function mouseMove( ev ) {
     
     if( sel_obs === null ) {
         for( var i = world.obs.length - 1; i >= 0; --i ) {
-            if( world.obs[i].nearEdge( pos ) ) {
+            var cpos = world.closestPoint( world.obs[i].pos, pos );
+            if( world.obs[i].nearEdge( cpos ) ) {
                 view.selectObstacle( i, true, true );
                 return;
-            } else if( world.obs[i].distance( pos ) == 0 ) {
+            } else if( world.obs[i].distance( cpos ) == 0 ) {
                 view.selectObstacle( i, true, false );
                 return;
             }
